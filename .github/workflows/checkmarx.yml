@@ -1,0 +1,150 @@
+# =============================================================================
+# Checkmarx One security scan - CTEM "Discovery" and "Re-scan" stages
+# =============================================================================
+# Uses the official Checkmarx One GitHub Action (checkmarx/ast-github-action).
+#
+# Organization-specific values are NOT defined here. Configure them in
+# Settings > Secrets and variables > Actions (or at organization level):
+#
+#   Secrets (required)
+#     CX_CLIENT_ID          OAuth client ID issued for this integration
+#     CX_CLIENT_SECRET      OAuth client secret
+#   Variables (required)
+#     CX_BASE_URI           Checkmarx One region/base URL for your tenant
+#     CX_TENANT             Checkmarx One tenant name
+#   Variables (optional)
+#     CX_PROJECT_NAME       Checkmarx project name (defaults to owner/repo)
+#     CX_SCAN_TYPES         Default: sast,sca,iac-security
+#     CX_FILE_FILTER        Default: !remediation/**
+#     CX_THRESHOLD          e.g. "sast-high=1;sca-high=1" to break the build
+#     CX_EXTRA_SCAN_PARAMS  Any additional `cx scan create` flags
+#
+# If CX_BASE_URI is not set, the scan job is skipped and a notice is printed,
+# so the repository stays green before onboarding.
+#
+# To use a centralized reusable workflow instead, see
+# docs/examples/call-central-security-workflow.yml and docs/checkmarx-integration.md.
+# =============================================================================
+name: Checkmarx One Scan
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Continuous monitoring: weekly re-scan picks up newly published CVEs
+    # (SCA) and updated queries even when the code has not changed.
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: checkmarx-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  prepare:
+    name: Prepare application
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      # Installing dependencies validates the manifests the SCA engine will
+      # resolve (requirements.txt -> requirements-demo-sca.txt).
+      - name: Install dependencies
+        run: pip install -r requirements-dev.txt
+
+      - name: Run tests
+        run: python -m pytest -q
+
+  checkmarx-scan:
+    name: Checkmarx One scan
+    needs: prepare
+    if: ${{ vars.CX_BASE_URI != '' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write   # upload SARIF to GitHub code scanning
+      pull-requests: write     # PR decoration by the Checkmarx action
+      actions: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      # TODO(org): pin this action to a full commit SHA per your supply-chain
+      # policy, and confirm the version approved by your AppSec / ASoD team.
+      - name: Checkmarx One scan
+        id: cx
+        uses: checkmarx/ast-github-action@2.3.47
+        with:
+          base_uri: ${{ vars.CX_BASE_URI }}
+          cx_tenant: ${{ vars.CX_TENANT }}
+          cx_client_id: ${{ secrets.CX_CLIENT_ID }}
+          cx_client_secret: ${{ secrets.CX_CLIENT_SECRET }}
+          # TODO(ASoD): project naming must follow the repository -> application ->
+          # Checkmarx project mapping defined during onboarding.
+          project_name: ${{ vars.CX_PROJECT_NAME || github.repository }}
+          # TODO(org): confirm scan types licensed for your tenant. Secret
+          # detection: add "scs" to CX_SCAN_TYPES and "--scs-engines secret-detection"
+          # to CX_EXTRA_SCAN_PARAMS (requires the corresponding license/configuration).
+          # Validate flags against the cx CLI version bundled with the action.
+          scan_params: >-
+            --scan-types ${{ vars.CX_SCAN_TYPES || 'sast,sca,iac-security' }}
+            --file-filter "${{ vars.CX_FILE_FILTER || '!remediation/**' }}"
+            --tags ctem-demo
+            --report-format sarif
+            --output-path .
+            --output-name cx_result
+            ${{ vars.CX_THRESHOLD && format('--threshold "{0}"', vars.CX_THRESHOLD) || '' }}
+            ${{ vars.CX_EXTRA_SCAN_PARAMS }}
+
+      - name: Upload SARIF to GitHub code scanning
+        if: ${{ always() && hashFiles('cx_result.sarif') != '' }}
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: cx_result.sarif
+          category: checkmarx-one
+
+      - name: Preserve scan results
+        if: ${{ always() && hashFiles('cx_result.*') != '' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: checkmarx-results
+          path: cx_result.*
+          retention-days: 30
+
+      - name: Job summary
+        if: always()
+        env:
+          SCAN_ID: ${{ steps.cx.outputs.cxScanID }}
+          PROJECT: ${{ vars.CX_PROJECT_NAME || github.repository }}
+        run: |
+          {
+            echo "### Checkmarx One scan"
+            echo "| Field | Value |"
+            echo "|---|---|"
+            echo "| Project | \`${PROJECT}\` |"
+            echo "| Ref | \`${GITHUB_REF_NAME}\` @ \`${GITHUB_SHA::7}\` |"
+            echo "| Scan ID | \`${SCAN_ID:-n/a}\` |"
+            echo ""
+            echo "Review, triage and prioritize findings in Checkmarx One (see docs/prioritization.md)."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  not-configured:
+    name: Checkmarx not configured
+    if: ${{ vars.CX_BASE_URI == '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          echo "::notice title=Checkmarx One not configured::Set CX_BASE_URI, CX_TENANT (variables) and CX_CLIENT_ID, CX_CLIENT_SECRET (secrets). See docs/checkmarx-integration.md."

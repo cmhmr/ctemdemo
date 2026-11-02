@@ -1,0 +1,7 @@
+Edge Router ER-100 - Product Datasheet
+================================
+Document type : Internal specification (demo data)
+Revision      : 1.0
+Support tier  : Standard
+
+This is fictional product data for the CTEM Demo Store training application.

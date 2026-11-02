@@ -1,0 +1,58 @@
+diff --git a/ctem_demo/datasheets.py b/ctem_demo/datasheets.py
+index 2c8ff0e..5f47295 100644
+--- a/ctem_demo/datasheets.py
++++ b/ctem_demo/datasheets.py
+@@ -1,8 +1,8 @@
+ """Product datasheet viewer (plain-text spec sheets stored on disk)."""
+ 
+-import os
++from pathlib import Path
+ 
+-from flask import Blueprint, abort, current_app, render_template, request
++from flask import Blueprint, abort, current_app, render_template
+ 
+ from .db import get_db
+ 
+@@ -15,17 +15,15 @@ def view_datasheet(product_id: int):
+     if product is None:
+         abort(404)
+ 
+-    # -----------------------------------------------------------------------
+-    # CTEM-SAST-02 | CWE-22 | Path traversal in datasheet viewer
+-    # TRAINING EXAMPLE: the "file" query parameter is joined to the datasheet
+-    # directory without normalization, so "../" sequences escape the folder.
+-    # Remediation: do not take paths from users; resolve and confine to base dir.
+-    # -----------------------------------------------------------------------
+-    filename = request.args.get("file", "")
+-    path = os.path.join(current_app.config["DATASHEET_DIR"], filename)
++    # CTEM-SAST-02 remediated: the file name comes from the product record, not
++    # from the request, and the resolved path must stay inside the datasheet dir.
++    filename = product["datasheet"]
++    if not filename:
++        abort(404)
++    base_dir = Path(current_app.config["DATASHEET_DIR"]).resolve()
++    path = (base_dir / filename).resolve()
+ 
+-    if not filename or not os.path.isfile(path):
++    if not path.is_relative_to(base_dir) or not path.is_file():
+         abort(404)
+-    with open(path, encoding="utf-8", errors="replace") as handle:
+-        content = handle.read()
++    content = path.read_text(encoding="utf-8", errors="replace")
+     return render_template("datasheet.html", product=product, filename=filename, content=content)
+diff --git a/tests/security/test_ctem_sast_02_path_traversal.py b/tests/security/test_ctem_sast_02_path_traversal.py
+index fafd3df..e60c1e6 100644
+--- a/tests/security/test_ctem_sast_02_path_traversal.py
++++ b/tests/security/test_ctem_sast_02_path_traversal.py
+@@ -1,11 +1,6 @@
+ """CTEM-SAST-02 | CWE-22 | Path traversal in datasheet viewer."""
+ 
+-import pytest
+ 
+-VULNERABLE = pytest.mark.xfail(strict=True, reason="CTEM-SAST-02 open in v0.1-demo-vulnerable")
+-
+-
+-@VULNERABLE
+ def test_datasheet_cannot_read_application_source(client):
+     # Benign lab-only probe: attempts to read the app's own config module.
+     resp = client.get("/products/1/datasheet", query_string={"file": "../../config.py"})

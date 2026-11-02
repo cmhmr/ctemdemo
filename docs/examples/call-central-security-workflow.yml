@@ -1,0 +1,42 @@
+# EXAMPLE ONLY - not active (it is outside .github/workflows).
+#
+# Shows how this repository could delegate scanning to an organization-owned,
+# centralized reusable workflow (for example one maintained by the ASoD / AppSec
+# platform team) instead of the local .github/workflows/checkmarx.yml.
+#
+# To adopt:
+#   1. Replace every <PLACEHOLDER> with values from your organization.
+#   2. Copy this file to .github/workflows/security.yml.
+#   3. Delete or disable .github/workflows/checkmarx.yml to avoid double scans.
+#
+# The inputs below are illustrative: use the inputs your central workflow
+# actually declares under `on.workflow_call.inputs`.
+name: Security (centralized)
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+  pull-requests: write
+  actions: read
+
+jobs:
+  security:
+    # TODO(org): <ORG>/<CENTRAL_WORKFLOWS_REPO> and <REF> are provided by the
+    # team that owns the reusable workflow. Pin <REF> to a tag or commit SHA.
+    uses: <ORG>/<CENTRAL_WORKFLOWS_REPO>/.github/workflows/<CHECKMARX_WORKFLOW>.yml@<REF>
+    with:
+      # Illustrative inputs - typically sourced from ASoD onboarding metadata.
+      project-name: ${{ vars.CX_PROJECT_NAME }}
+      scan-types: sast,sca,iac-security
+    # Either pass secrets explicitly or inherit org/repo secrets.
+    secrets: inherit

@@ -1,0 +1,49 @@
+diff --git a/ctem_demo/auth.py b/ctem_demo/auth.py
+index 785fb72..9439e8e 100644
+--- a/ctem_demo/auth.py
++++ b/ctem_demo/auth.py
+@@ -56,20 +56,18 @@ def login():
+         username = request.form.get("username", "").strip()
+         password = request.form.get("password", "")
+ 
+-        # -------------------------------------------------------------------
+-        # CTEM-SAST-04 | CWE-532 | Sensitive information written to logs
+-        # TRAINING EXAMPLE: the plaintext password is logged. Anyone with log
+-        # access (SIEM, support, log shipping) can harvest credentials.
+-        # Remediation: never log secrets; log only the event and outcome.
+-        # -------------------------------------------------------------------
+-        log.info("Login attempt username=%s password=%s", username, password)
++        # CTEM-SAST-04 remediated: never log secrets; record the event and outcome
++        # only, with CR/LF stripped from user-controlled values (CWE-117).
++        safe_username = username.replace("\r", "").replace("\n", "")[:64]
+ 
+         row = get_db().execute("SELECT id, password_hash FROM users WHERE username = ?", (username,)).fetchone()
+         if row is not None and verify_password(password, row["password_hash"]):
++            log.info("Login succeeded username=%s", safe_username)
+             session.clear()
+             session["user_id"] = row["id"]
+             flash("Signed in.", "success")
+             return redirect(_safe_next(request.args.get("next")))
++        log.warning("Login failed username=%s", safe_username)
+         flash("Invalid username or password.", "error")
+     return render_template("login.html")
+ 
+diff --git a/tests/security/test_ctem_sast_04_sensitive_logging.py b/tests/security/test_ctem_sast_04_sensitive_logging.py
+index 19ea146..aff3e22 100644
+--- a/tests/security/test_ctem_sast_04_sensitive_logging.py
++++ b/tests/security/test_ctem_sast_04_sensitive_logging.py
+@@ -2,14 +2,9 @@
+ 
+ import logging
+ 
+-import pytest
+-
+ from conftest import login
+ 
+-VULNERABLE = pytest.mark.xfail(strict=True, reason="CTEM-SAST-04 open in v0.1-demo-vulnerable")
+-
+ 
+-@VULNERABLE
+ def test_login_does_not_log_password(client, caplog):
+     caplog.set_level(logging.DEBUG)
+     login(client, password="Distinctive-Pa55word")

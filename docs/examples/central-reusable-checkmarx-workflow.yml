@@ -1,0 +1,58 @@
+# EXAMPLE ONLY - a sketch of what a centralized reusable workflow could look
+# like in an organization-owned repository. It is NOT used by this POC.
+# The platform team owns the Checkmarx version, flags, thresholds and result
+# routing; application repositories only call it.
+name: Checkmarx One (reusable)
+
+on:
+  workflow_call:
+    inputs:
+      project-name:
+        type: string
+        required: false
+        default: ""
+      scan-types:
+        type: string
+        required: false
+        default: sast,sca,iac-security
+    secrets:
+      CX_CLIENT_ID:
+        required: true
+      CX_CLIENT_SECRET:
+        required: true
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+      pull-requests: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v7
+
+      # TODO(org): pin to an approved commit SHA.
+      - id: cx
+        uses: checkmarx/ast-github-action@2.3.47
+        with:
+          # TODO(org): base URI / tenant are typically org-level variables.
+          base_uri: ${{ vars.CX_BASE_URI }}
+          cx_tenant: ${{ vars.CX_TENANT }}
+          cx_client_id: ${{ secrets.CX_CLIENT_ID }}
+          cx_client_secret: ${{ secrets.CX_CLIENT_SECRET }}
+          project_name: ${{ inputs.project-name != '' && inputs.project-name || github.repository }}
+          scan_params: >-
+            --scan-types ${{ inputs.scan-types }}
+            --report-format sarif
+            --output-path .
+            --output-name cx_result
+
+      - if: ${{ always() && hashFiles('cx_result.sarif') != '' }}
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: cx_result.sarif
+          category: checkmarx-one
+
+      # TODO(ASoD): hand off scan ID / results to the ASoD service (ticketing,
+      # ownership routing, dashboards) using its documented interface.

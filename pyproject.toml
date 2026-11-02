@@ -1,0 +1,14 @@
+[project]
+name = "ctem-demo-store"
+version = "0.1.0"
+description = "CTEM / Checkmarx One proof-of-concept application (training lab, intentionally insecure)"
+requires-python = ">=3.13"
+readme = "README.md"
+
+# Dependencies are managed in requirements*.txt so the SCA demonstration set
+# stays isolated in requirements-demo-sca.txt.
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-ra"

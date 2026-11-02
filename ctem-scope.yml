@@ -1,0 +1,45 @@
+# =============================================================================
+# CTEM scoping record for CTEM Demo Store (ILLUSTRATIVE FORMAT)
+# =============================================================================
+# This is NOT an ASoD or Checkmarx schema. It captures the business context
+# that CTEM "Scoping" produces and that "Prioritization" consumes. In a real
+# program this data lives in the ASoD / CMDB / application inventory; replace
+# the TODO values during onboarding (see docs/asod-integration.md).
+# =============================================================================
+application:
+  name: CTEM Demo Store
+  id: TODO-ASOD-APPLICATION-ID            # assigned by ASoD onboarding
+  description: Internal product / inventory portal (training lab)
+  repository: TODO-ORG/TODO-REPO
+  checkmarx_project: TODO-CX-PROJECT-NAME  # mirrors vars.CX_PROJECT_NAME
+
+ownership:
+  business_owner: TODO
+  technical_owner: TODO
+  security_champion: TODO
+  support_group: TODO
+
+context:
+  environment: lab                  # lab | dev | staging | production
+  exposure: internal                # internet-facing | partner | internal
+  authentication: session-login
+  data_classification: internal     # public | internal | confidential | restricted
+  handles_credentials: true         # stores password hashes for portal users
+  business_criticality: medium      # low | medium | high | critical
+  compliance_scope: []              # e.g. [pci-dss, sox] - none for the demo
+
+scope:
+  in:
+    - Python application source (ctem_demo/, app.py)
+    - Third-party dependencies (requirements*.txt)
+    - Container definition (Dockerfile, docker-compose.yml)
+    - CI/CD workflows (.github/workflows/)
+  out:
+    - remediation/ (prepared fixes for the demo, not shipped code)
+    - Underlying cloud/network infrastructure (covered by other CTEM sources)
+
+remediation_targets:               # example SLA policy - align with your program
+  critical: 7d
+  high: 30d
+  medium: 90d
+  low: best-effort

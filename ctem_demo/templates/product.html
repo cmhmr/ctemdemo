@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}{{ product['name'] }}{% endblock %}
+{% block content %}
+<h1>{{ product['name'] }}</h1>
+<dl class="details">
+  <dt>SKU</dt><dd>{{ product['sku'] }}</dd>
+  <dt>Category</dt><dd>{{ product['category'] }}</dd>
+  <dt>Price</dt><dd>{{ product['price'] }}</dd>
+  <dt>Stock</dt><dd id="stock">{{ product['stock'] }}</dd>
+  <dt>Description</dt><dd>{{ product['description'] }}</dd>
+  <dt>Datasheet</dt>
+  <dd>{% if product['datasheet'] %}<a href="{{ url_for('datasheets.view_datasheet', product_id=product['id'], file=product['datasheet']) }}">{{ product['datasheet'] }}</a>{% else %}<span class="muted">Not available</span>{% endif %}</dd>
+</dl>
+{% if current_user %}
+<h2>Reorder stock</h2>
+<form class="inline-form" method="post" action="{{ url_for('catalog.reorder', product_id=product['id']) }}">
+  <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+  <label>Quantity <input type="number" name="quantity" min="1" max="500" value="10"></label>
+  <button type="submit">Submit reorder</button>
+</form>
+{% else %}
+<p class="muted"><a href="{{ url_for('auth.login', next=request.path) }}">Sign in</a> to reorder stock.</p>
+{% endif %}
+{% endblock %}

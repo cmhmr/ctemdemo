@@ -1,0 +1,51 @@
+diff --git a/ctem_demo/catalog.py b/ctem_demo/catalog.py
+index f8343c6..48e9b04 100644
+--- a/ctem_demo/catalog.py
++++ b/ctem_demo/catalog.py
+@@ -30,16 +30,13 @@ def search():
+     term = request.args.get("q", "").strip()
+     results = []
+     if term:
+-        # -------------------------------------------------------------------
+-        # CTEM-SAST-01 | CWE-89 | SQL injection in product search
+-        # TRAINING EXAMPLE: user input is concatenated into the SQL string.
+-        # Remediation: use a parameterized query (placeholders + bound values).
+-        # -------------------------------------------------------------------
+-        sql = (
++        # CTEM-SAST-01 remediated: parameterized query; input is bound, never concatenated.
++        pattern = f"%{term[:100]}%"
++        results = get_db().execute(
+             "SELECT id, sku, name, category, price FROM products "
+-            f"WHERE name LIKE '%{term}%' OR category LIKE '%{term}%' ORDER BY name"
+-        )
+-        results = get_db().execute(sql).fetchall()
++            "WHERE name LIKE ? OR category LIKE ? ORDER BY name",
++            (pattern, pattern),
++        ).fetchall()
+     return render_template("search.html", term=term, results=results)
+ 
+ 
+diff --git a/tests/security/test_ctem_sast_01_sql_injection.py b/tests/security/test_ctem_sast_01_sql_injection.py
+index 908f211..67e1fc5 100644
+--- a/tests/security/test_ctem_sast_01_sql_injection.py
++++ b/tests/security/test_ctem_sast_01_sql_injection.py
+@@ -1,11 +1,6 @@
+ """CTEM-SAST-01 | CWE-89 | SQL injection in product search."""
+ 
+-import pytest
+ 
+-VULNERABLE = pytest.mark.xfail(strict=True, reason="CTEM-SAST-01 open in v0.1-demo-vulnerable")
+-
+-
+-@VULNERABLE
+ def test_search_does_not_expose_user_table(client):
+     # Benign lab-only probe: tries to read the local demo users table via UNION.
+     probe = "zz' UNION SELECT id, username, password_hash, role, 0 FROM users --"
+@@ -15,7 +10,6 @@ def test_search_does_not_expose_user_table(client):
+     assert "riley.admin" not in body and ">admin<" not in body
+ 
+ 
+-@VULNERABLE
+ def test_search_handles_quote_characters(client):
+     resp = client.get("/products/search", query_string={"q": "O'Brien"})
+     assert resp.status_code == 200

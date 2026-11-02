@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Admin status{% endblock %}
+{% block content %}
+<h1>Admin status</h1>
+<dl class="details">
+  {% for key, value in info.items() %}<dt>{{ key }}</dt><dd>{{ value }}</dd>{% endfor %}
+  <dt>Inventory sync</dt>
+  <dd>{% if integration['configured'] %}Configured (key {{ integration['key_hint'] }}){% else %}Not configured{% endif %}</dd>
+</dl>
+<p class="muted">Health endpoint: <a href="{{ url_for('admin.health') }}">/health</a></p>
+{% endblock %}

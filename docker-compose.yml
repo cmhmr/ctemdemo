@@ -1,0 +1,12 @@
+services:
+  ctem-demo:
+    build: .
+    image: ctem-demo:local
+    ports:
+      - "127.0.0.1:8080:8080"
+    environment:
+      CTEM_APP_ENV: lab
+      CTEM_LOG_LEVEL: INFO
+      # Optional overrides (read from your shell or a local .env file):
+      CTEM_DEMO_PASSWORD: ${CTEM_DEMO_PASSWORD:-ctem-demo}
+      CTEM_INVENTORY_API_KEY: ${CTEM_INVENTORY_API_KEY:-}

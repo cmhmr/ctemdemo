@@ -1,0 +1,31 @@
+:root { --bg:#f6f7f9; --fg:#1f2933; --muted:#616e7c; --accent:#1f4e8c; --border:#d9dee5; }
+* { box-sizing: border-box; }
+body { margin:0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background:var(--bg); color:var(--fg); }
+a { color:var(--accent); }
+.lab-banner { background:#fff4ce; color:#6b5200; text-align:center; font-size:.85rem; padding:.35rem; border-bottom:1px solid #f0d77a; }
+.topbar { display:flex; justify-content:space-between; align-items:center; background:var(--accent); padding:.75rem 1.5rem; }
+.topbar a, .topbar button.link { color:#fff; text-decoration:none; margin-left:1rem; }
+.brand { font-weight:700; font-size:1.1rem; margin-left:0 !important; }
+main { max-width:960px; margin:1.5rem auto; background:#fff; padding:1.5rem 2rem; border:1px solid var(--border); border-radius:8px; }
+footer { text-align:center; color:var(--muted); font-size:.8rem; padding:1rem; }
+.muted { color:var(--muted); }
+.cards { display:flex; gap:1rem; margin:1rem 0; }
+.card { flex:1; border:1px solid var(--border); border-radius:8px; padding:1rem; text-align:center; }
+.metric { font-size:1.8rem; font-weight:700; color:var(--accent); }
+table { width:100%; border-collapse:collapse; margin-top:1rem; }
+th, td { text-align:left; padding:.5rem; border-bottom:1px solid var(--border); }
+.num { text-align:right; }
+.details { display:grid; grid-template-columns:160px 1fr; gap:.4rem 1rem; }
+.details dt { font-weight:600; }
+.details dd { margin:0; }
+form.search, form.inline-form { display:flex; gap:.5rem; margin-top:1rem; align-items:center; }
+form.stacked { display:flex; flex-direction:column; gap:.75rem; max-width:320px; }
+form.inline { display:inline; }
+input[type=text], input[type=password], input[type=number] { padding:.45rem; border:1px solid var(--border); border-radius:4px; }
+form.search input { flex:1; }
+button { background:var(--accent); color:#fff; border:0; border-radius:4px; padding:.5rem .9rem; cursor:pointer; }
+button.link { background:none; padding:0; font:inherit; }
+.flash { padding:.6rem .8rem; border-radius:4px; margin-bottom:1rem; }
+.flash.success { background:#e3f9e5; color:#05400a; }
+.flash.error { background:#ffe3e3; color:#610404; }
+pre.datasheet { background:#f0f4f8; padding:1rem; border-radius:6px; white-space:pre-wrap; }

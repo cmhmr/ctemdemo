@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Search{% endblock %}
+{% block content %}
+<h1>Product search</h1>
+<form class="search" method="get" action="{{ url_for('catalog.search') }}">
+  <input type="text" name="q" value="{{ term }}" placeholder="e.g. switch, Networking" aria-label="Search">
+  <button type="submit">Search</button>
+</form>
+{% if term %}
+  <p class="muted">{{ results|length }} result(s) for "{{ term }}"</p>
+  {% set rows = results %}{% set show_stock = false %}
+  {% include "_product_table.html" %}
+{% endif %}
+{% endblock %}

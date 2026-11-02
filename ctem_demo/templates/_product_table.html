@@ -1,0 +1,16 @@
+<table>
+  <thead><tr><th>SKU</th><th>Name</th><th>Category</th><th class="num">Price</th>{% if show_stock %}<th class="num">Stock</th>{% endif %}</tr></thead>
+  <tbody>
+  {% for p in rows %}
+    <tr>
+      <td>{{ p['sku'] }}</td>
+      <td><a href="{{ url_for('catalog.product_detail', product_id=p['id']) }}">{{ p['name'] }}</a></td>
+      <td>{{ p['category'] }}</td>
+      <td class="num">{{ p['price'] }}</td>
+      {% if show_stock %}<td class="num">{{ p['stock'] }}</td>{% endif %}
+    </tr>
+  {% else %}
+    <tr><td colspan="5" class="muted">No products found.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>

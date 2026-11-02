@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Sign in{% endblock %}
+{% block content %}
+<h1>Sign in</h1>
+<form class="stacked" method="post">
+  <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+  <label>Username <input type="text" name="username" autocomplete="username" required></label>
+  <label>Password <input type="password" name="password" autocomplete="current-password" required></label>
+  <button type="submit">Sign in</button>
+</form>
+<p class="muted">Lab accounts: <code>analyst</code> (user) and <code>admin</code> (admin). Password is set with <code>CTEM_DEMO_PASSWORD</code>.</p>
+{% endblock %}

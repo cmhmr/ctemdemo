@@ -1,0 +1,63 @@
+# Build & test (application quality gate).
+# The security regression tests in tests/security run here too: in the
+# vulnerable state they report XFAIL (open exposure); after remediation they
+# pass and permanently guard against regressions.
+name: CI
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Test (Python 3.13)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements-dev.txt
+
+      - name: Run tests
+        run: python -m pytest -ra --junitxml=pytest-report.xml
+
+      - name: Upload test report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: pytest-report
+          path: pytest-report.xml
+
+  container:
+    name: Container build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Build image
+        run: docker build -t ctem-demo:${{ github.sha }} .
+
+      - name: Smoke test
+        run: |
+          docker run -d --name ctem-demo -p 8080:8080 ctem-demo:${{ github.sha }}
+          for i in $(seq 1 20); do
+            curl -fsS http://127.0.0.1:8080/health && exit 0
+            sleep 1
+          done
+          docker logs ctem-demo
+          exit 1

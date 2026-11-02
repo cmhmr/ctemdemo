@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Home{% endblock %}
+{% block content %}
+<h1>Internal Inventory Portal</h1>
+<p class="muted">A small internal product and inventory portal used to demonstrate the CTEM lifecycle with Checkmarx One.</p>
+<div class="cards">
+  <div class="card"><div class="metric">{{ stats['products'] }}</div><div>Products</div></div>
+  <div class="card"><div class="metric">{{ stats['units'] or 0 }}</div><div>Units in stock</div></div>
+  <div class="card"><div class="metric">{{ stats['categories'] }}</div><div>Categories</div></div>
+</div>
+<form class="search" method="get" action="{{ url_for('catalog.search') }}">
+  <input type="text" name="q" placeholder="Search products or categories" aria-label="Search">
+  <button type="submit">Search</button>
+</form>
+{% endblock %}

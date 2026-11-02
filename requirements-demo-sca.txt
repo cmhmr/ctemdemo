@@ -1,0 +1,20 @@
+# =============================================================================
+# CTEM-SCA-01 | Dependency-analysis (SCA) demonstration set - TRAINING ONLY
+# =============================================================================
+# This file isolates dependencies that are pinned on purpose to versions with
+# PUBLISHED advisories so that SCA tooling (e.g. Checkmarx One SCA) has a
+# realistic, explainable finding to report. The application does not import
+# these packages at runtime.
+#
+# requests 2.31.0 - advisories published in OSV / GitHub Advisory Database
+# (verified 2026-11-02 via https://api.osv.dev):
+#   - GHSA-9wx4-h78v-vm56 / CVE-2024-35195  (fixed in 2.32.0)
+#   - GHSA-9hjg-9r4m-mvj7 / CVE-2024-47081  (fixed in 2.32.4)
+#   - GHSA-gc5v-m9x4-r6x2 / CVE-2026-25645  (fixed in 2.33.0)
+#
+# REVIEW BEFORE EVERY DEMO: advisory data and scanner behavior evolve. Re-check
+# these versions against your SCA tool and the advisory databases, and update
+# this file (and docs/security-scenarios.md) if needed. Remediation patch:
+# remediation/patches/CTEM-SCA-01-vulnerable-dependency.patch
+# =============================================================================
+requests==2.31.0

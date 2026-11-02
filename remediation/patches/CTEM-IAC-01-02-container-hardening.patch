@@ -1,0 +1,64 @@
+diff --git a/Dockerfile b/Dockerfile
+index f5235b4..01a14b3 100644
+--- a/Dockerfile
++++ b/Dockerfile
+@@ -1,24 +1,32 @@
+ # CTEM Demo Store container image - TRAINING / LAB USE ONLY.
+-# Contains two intentional, non-destructive misconfigurations for IaC/container
+-# scanning demonstrations (see docs/security-scenarios.md):
+-#   CTEM-IAC-01 - container runs as root (no USER instruction)
+-#   CTEM-IAC-02 - no HEALTHCHECK instruction
++# CTEM-IAC-01 / CTEM-IAC-02 remediated: runs as an unprivileged user and
++# declares a HEALTHCHECK. Consider also pinning the base image by digest.
+ FROM python:3.13-slim
+ 
+ ENV PYTHONDONTWRITEBYTECODE=1 \
+     PYTHONUNBUFFERED=1 \
+     PIP_NO_CACHE_DIR=1 \
+     CTEM_HOST=0.0.0.0 \
+-    CTEM_PORT=8080
++    CTEM_PORT=8080 \
++    CTEM_INSTANCE_DIR=/app/instance
+ 
+ WORKDIR /app
+ 
++RUN groupadd --system --gid 10001 app \
++    && useradd --system --uid 10001 --gid app --no-create-home --shell /usr/sbin/nologin app
++
+ COPY requirements.txt requirements-demo-sca.txt ./
+ RUN pip install --no-cache-dir -r requirements.txt
+ 
+ COPY app.py ./
+ COPY ctem_demo ./ctem_demo
++RUN mkdir -p /app/instance && chown app:app /app/instance
++
++USER app
+ 
+ EXPOSE 8080
+ 
++HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
++    CMD ["python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8080/health', timeout=2).status == 200 else 1)"]
++
+ CMD ["python", "app.py"]
+diff --git a/tests/security/test_ctem_iac_01_02_dockerfile.py b/tests/security/test_ctem_iac_01_02_dockerfile.py
+index 130286d..2110f21 100644
+--- a/tests/security/test_ctem_iac_01_02_dockerfile.py
++++ b/tests/security/test_ctem_iac_01_02_dockerfile.py
+@@ -3,17 +3,13 @@
+ import re
+ from pathlib import Path
+ 
+-import pytest
+-
+ DOCKERFILE = (Path(__file__).resolve().parents[2] / "Dockerfile").read_text()
+ 
+ 
+-@pytest.mark.xfail(strict=True, reason="CTEM-IAC-01 open in v0.1-demo-vulnerable")
+ def test_container_runs_as_non_root_user():
+     users = re.findall(r"^USER\s+(\S+)", DOCKERFILE, re.MULTILINE)
+     assert users and users[-1] not in {"root", "0", "0:0"}
+ 
+ 
+-@pytest.mark.xfail(strict=True, reason="CTEM-IAC-02 open in v0.1-demo-vulnerable")
+ def test_container_defines_healthcheck():
+     assert re.search(r"^HEALTHCHECK\s", DOCKERFILE, re.MULTILINE)

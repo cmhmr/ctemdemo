@@ -1,0 +1,33 @@
+diff --git a/requirements-demo-sca.txt b/requirements-demo-sca.txt
+index 382cebc..51ea5d4 100644
+--- a/requirements-demo-sca.txt
++++ b/requirements-demo-sca.txt
+@@ -17,4 +17,7 @@
+ # this file (and docs/security-scenarios.md) if needed. Remediation patch:
+ # remediation/patches/CTEM-SCA-01-vulnerable-dependency.patch
+ # =============================================================================
+-requests==2.31.0
++# CTEM-SCA-01 remediated: upgraded from requests 2.31.0 (GHSA-9wx4-h78v-vm56,
++# GHSA-9hjg-9r4m-mvj7, GHSA-gc5v-m9x4-r6x2) to 2.34.2, which had no known
++# advisories in OSV when verified on 2026-11-02. Re-verify before each demo.
++requests==2.34.2
+diff --git a/tests/security/test_ctem_sca_01_dependency.py b/tests/security/test_ctem_sca_01_dependency.py
+index e1df184..7ee5941 100644
+--- a/tests/security/test_ctem_sca_01_dependency.py
++++ b/tests/security/test_ctem_sca_01_dependency.py
+@@ -3,15 +3,11 @@
+ import re
+ from pathlib import Path
+ 
+-import pytest
+-
+-VULNERABLE = pytest.mark.xfail(strict=True, reason="CTEM-SCA-01 open in v0.1-demo-vulnerable")
+ MANIFEST = Path(__file__).resolve().parents[2] / "requirements-demo-sca.txt"
+ # Minimum version without the advisories listed in requirements-demo-sca.txt.
+ MINIMUM_SAFE = (2, 33, 0)
+ 
+ 
+-@VULNERABLE
+ def test_requests_pin_is_not_below_patched_version():
+     match = re.search(r"^requests==(\d+)\.(\d+)\.(\d+)", MANIFEST.read_text(), re.MULTILINE)
+     assert match, "requests pin not found"

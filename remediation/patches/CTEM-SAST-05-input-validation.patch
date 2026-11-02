@@ -1,0 +1,49 @@
+diff --git a/ctem_demo/catalog.py b/ctem_demo/catalog.py
+index f8343c6..e49fe85 100644
+--- a/ctem_demo/catalog.py
++++ b/ctem_demo/catalog.py
+@@ -1,6 +1,6 @@
+ """Product catalog: listing, search, details and stock reorder."""
+ 
+-from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
++from flask import Blueprint, abort, current_app, flash, redirect, render_template, request, url_for
+ 
+ from .auth import login_required
+ from .db import get_db
+@@ -58,13 +58,14 @@ def reorder(product_id: int):
+     if db.execute("SELECT id FROM products WHERE id = ?", (product_id,)).fetchone() is None:
+         abort(404)
+ 
+-    # -----------------------------------------------------------------------
+-    # CTEM-SAST-05 | CWE-20 / CWE-1284 | Insufficient input validation
+-    # TRAINING EXAMPLE: the quantity is trusted as-is. Negative or huge values
+-    # corrupt inventory, and non-numeric values raise an unhandled error.
+-    # Remediation: validate type and enforce an allowed range server-side.
+-    # -----------------------------------------------------------------------
+-    quantity = int(request.form.get("quantity", "0"))
++    # CTEM-SAST-05 remediated: strict server-side type and range validation.
++    raw_quantity = request.form.get("quantity", "").strip()
++    max_quantity = current_app.config["MAX_REORDER_QUANTITY"]
++    if not raw_quantity.isdecimal() or not 1 <= int(raw_quantity) <= max_quantity:
++        flash(f"Quantity must be a whole number between 1 and {max_quantity}.", "error")
++        product = db.execute("SELECT * FROM products WHERE id = ?", (product_id,)).fetchone()
++        return render_template("product.html", product=product), 400
++    quantity = int(raw_quantity)
+ 
+     db.execute("UPDATE products SET stock = stock + ? WHERE id = ?", (quantity, product_id))
+     db.commit()
+diff --git a/tests/security/test_ctem_sast_05_input_validation.py b/tests/security/test_ctem_sast_05_input_validation.py
+index 74de14c..8cfc66e 100644
+--- a/tests/security/test_ctem_sast_05_input_validation.py
++++ b/tests/security/test_ctem_sast_05_input_validation.py
+@@ -4,10 +4,7 @@ import pytest
+ 
+ from conftest import csrf_token
+ 
+-VULNERABLE = pytest.mark.xfail(strict=True, reason="CTEM-SAST-05 open in v0.1-demo-vulnerable")
+ 
+-
+-@VULNERABLE
+ @pytest.mark.parametrize("quantity", ["-1000", "0", "999999", "abc", "1.5"])
+ def test_reorder_rejects_invalid_quantity(logged_in, quantity):
+     token = csrf_token(logged_in, "/products/1")
