@@ -31,7 +31,7 @@ on:
   push:
     # branches: [master]
     tags: ["v*"]
-  pull_request:
+  # pull_request:
     # branches: [master]
   schedule:
     # Continuous monitoring: weekly re-scan picks up newly published CVEs
