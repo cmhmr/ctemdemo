@@ -10,7 +10,7 @@ import secrets
 
 from flask import Flask, abort, render_template, request, session
 
-from ..AVAL.ctem_demo import admin, auth, catalog, datasheets, db
+from ctem_demo import admin, auth, catalog, datasheets, db
 from .config import load_config
 
 
