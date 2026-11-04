@@ -30,16 +30,13 @@ def search():
     term = request.args.get("q", "").strip()
     results = []
     if term:
-        # -------------------------------------------------------------------
-        # CTEM-SAST-01 | CWE-89 | SQL injection in product search
-        # TRAINING EXAMPLE: user input is concatenated into the SQL string.
-        # Remediation: use a parameterized query (placeholders + bound values).
-        # -------------------------------------------------------------------
-        sql = (
+        # CTEM-SAST-01 remediated: parameterized query; input is bound, never concatenated.
+        pattern = f"%{term[:100]}%"
+        results = get_db().execute(
             "SELECT id, sku, name, category, price FROM products "
-            f"WHERE name LIKE '%{term}%' OR category LIKE '%{term}%' ORDER BY name"
-        )
-        results = get_db().execute(sql).fetchall()
+            "WHERE name LIKE ? OR category LIKE ? ORDER BY name",
+            (pattern, pattern),
+        ).fetchall()
     return render_template("search.html", term=term, results=results)
 
 
