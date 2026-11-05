@@ -18,3 +18,4 @@
 # remediation/patches/CTEM-SCA-01-vulnerable-dependency.patch
 # =============================================================================
 requests==2.31.0
+openpyxl==3.1.5
