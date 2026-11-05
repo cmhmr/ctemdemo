@@ -26,6 +26,14 @@ def test_search_by_category(client):
     assert "Edge Router ER-100" in body and "Managed Switch MS-24" in body
 
 
+def test_search_escapes_reflected_query(client):
+    payload = "<script>alert(1)</script>"
+    body = client.get("/products/search", query_string={"q": payload}).get_data(as_text=True)
+
+    assert payload not in body
+    assert body.count("&lt;script&gt;alert(1)&lt;/script&gt;") == 2
+
+
 def test_product_detail_and_404(client):
     assert client.get("/products/1").status_code == 200
     assert client.get("/products/9999").status_code == 404
