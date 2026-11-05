@@ -31,6 +31,6 @@ def view_datasheet(product_id: int):
 
     if not filename or not is_confined or not os.path.isfile(path):
         abort(404)
-    with open(path, encoding="utf-8", errors="replace") as handle:
+    with open(path, mode="r", encoding="utf-8", errors="replace") as handle:
         content = handle.read()
     return render_template("datasheet.html", product=product, filename=filename, content=content)
