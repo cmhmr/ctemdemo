@@ -21,15 +21,24 @@ def view_datasheet(product_id: int):
     # directory, including when a path traverses a symlink.
     # -----------------------------------------------------------------------
     filename = request.args.get("file", "")
-    base_dir = os.path.realpath(current_app.config["DATASHEET_DIR"])
-    path = os.path.realpath(os.path.join(base_dir, filename))
+    if not filename:
+        abort(404)
 
+    base_dir = os.path.realpath(current_app.config["DATASHEET_DIR"])
+
+    # Reject absolute paths and any traversal attempts before resolving the user
+    # supplied value against the datasheet directory.
+    normalized = os.path.normpath(filename.replace("\\", "/"))
+    if os.path.isabs(filename) or normalized in ("", ".") or normalized == ".." or normalized.startswith("../") or "/../" in normalized:
+        abort(404)
+
+    path = os.path.realpath(os.path.join(base_dir, filename))
     try:
         is_confined = os.path.commonpath((base_dir, path)) == base_dir
     except ValueError:
         is_confined = False
 
-    if not filename or not is_confined or not os.path.isfile(path):
+    if not is_confined or not os.path.isfile(path):
         abort(404)
     with open(path, mode="r", encoding="utf-8", errors="replace") as handle:
         content = handle.read()
