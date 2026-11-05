@@ -17,14 +17,19 @@ def view_datasheet(product_id: int):
 
     # -----------------------------------------------------------------------
     # CTEM-SAST-02 | CWE-22 | Path traversal in datasheet viewer
-    # TRAINING EXAMPLE: the "file" query parameter is joined to the datasheet
-    # directory without normalization, so "../" sequences escape the folder.
-    # Remediation: do not take paths from users; resolve and confine to base dir.
+    # Resolve the requested path and ensure it remains inside the datasheet
+    # directory, including when a path traverses a symlink.
     # -----------------------------------------------------------------------
     filename = request.args.get("file", "")
-    path = os.path.join(current_app.config["DATASHEET_DIR"], filename)
+    base_dir = os.path.realpath(current_app.config["DATASHEET_DIR"])
+    path = os.path.realpath(os.path.join(base_dir, filename))
 
-    if not filename or not os.path.isfile(path):
+    try:
+        is_confined = os.path.commonpath((base_dir, path)) == base_dir
+    except ValueError:
+        is_confined = False
+
+    if not filename or not is_confined or not os.path.isfile(path):
         abort(404)
     with open(path, encoding="utf-8", errors="replace") as handle:
         content = handle.read()
