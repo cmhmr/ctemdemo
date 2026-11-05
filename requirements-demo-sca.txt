@@ -17,5 +17,5 @@
 # this file (and docs/security-scenarios.md) if needed. Remediation patch:
 # remediation/patches/CTEM-SCA-01-vulnerable-dependency.patch
 # =============================================================================
-requests==2.31.0 
+requests==2.33.0
 openpyxl==3.1.5
